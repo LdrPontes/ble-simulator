@@ -1,45 +1,59 @@
 import bleno from 'bleno';
 
-bleno.on('stateChange', function(state) {
-  console.log('on stateChange: ' + state);
+var BlenoPrimaryService = bleno.PrimaryService;
+var BlenoCharacteristic = bleno.Characteristic;
 
-  try {
-    if (state === 'poweredOn') {
-      var name = 'MyRPI-Simulator';
-      var serviceUuids = ['fffffffffffffffffffffffffffffff0']
-      
-      bleno.startAdvertising(name, serviceUuids, function(err) {
-        if (err) {
-          console.log(err);
-        }
-      });
-      console.log('startAdvertising');
-    } else {
-      bleno.stopAdvertising();
-      console.log('stopAdvertising');
-    }
-  } catch (error) {
-    console.log(error);
+bleno.on('stateChange', function(state) {
+  console.log('on -> stateChange: ' + state);
+
+  if (state === 'poweredOn') {
+    bleno.startAdvertising('echo', ['ec00']);
+  } else {
+    bleno.stopAdvertising();
   }
 });
 
-bleno.on('advertisingStart', function(err) {
-  if (!err) {
-    console.log('advertising...');
+var value = new Buffer(0);
+var updateValueCallback: any = null;
 
+bleno.on('advertisingStart', function(error) {
+  console.log('on -> advertisingStart: ' + (error ? 'error ' + error : 'success'));
+
+  if (!error) {
     bleno.setServices([
-      new bleno.PrimaryService({
-        uuid: 'fffffffffffffffffffffffffffffff0',
+      new BlenoPrimaryService({
+        uuid: 'ec0e',
         characteristics: [
-          new bleno.Characteristic({
+          new BlenoCharacteristic({
+            uuid: 'ec0e',
+            properties: ['read', 'write', 'notify'],
             value: null,
-            uuid: 'fffffffffffffffffffffffffffffff1',
-            properties: ['read', 'write'],
             onReadRequest: function(offset, callback) {
-              console.log('onReadRequest');
+              console.log('EchoCharacteristic - onReadRequest: value = ' +offset);
+              callback(bleno.Characteristic.RESULT_SUCCESS, value);
             },
             onWriteRequest: function(data, offset, withoutResponse, callback) {
+              value = data;
+
               console.log('onWriteRequest: ' + data.toString('hex') + ' ' + offset + ' ' + withoutResponse);
+
+              if (updateValueCallback) {
+                console.log('EchoCharacteristic - onWriteRequest: notifying');
+
+                updateValueCallback(value);
+              }
+
+              callback(bleno.Characteristic.RESULT_SUCCESS);
+            },
+            onSubscribe: function(maxValueSize, value) {
+              console.log('EchoCharacteristic - onSubscribe');
+
+              updateValueCallback = value;
+            },
+            onUnsubscribe: function() {
+              console.log('EchoCharacteristic - onUnsubscribe');
+
+              updateValueCallback = null;
             }
           })
         ]
