@@ -5,7 +5,7 @@ bleno.on('stateChange', function(state) {
 
   try {
     if (state === 'poweredOn') {
-      var name = 'name';
+      var name = 'MyRPI-Simulator';
       var serviceUuids = ['fffffffffffffffffffffffffffffff0']
       
       bleno.startAdvertising(name, serviceUuids, function(err) {
