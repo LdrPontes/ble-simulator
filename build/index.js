@@ -8,7 +8,13 @@ bleno_1.default.on('stateChange', function (state) {
     console.log('on stateChange: ' + state);
     try {
         if (state === 'poweredOn') {
-            bleno_1.default.startAdvertising('MyRPI-Simulator', ['1803']);
+            var name = 'name';
+            var serviceUuids = ['fffffffffffffffffffffffffffffff0'];
+            bleno_1.default.startAdvertising(name, serviceUuids, function (err) {
+                if (err) {
+                    console.log(err);
+                }
+            });
             console.log('startAdvertising');
         }
         else {
@@ -18,5 +24,28 @@ bleno_1.default.on('stateChange', function (state) {
     }
     catch (error) {
         console.log(error);
+    }
+});
+bleno_1.default.on('advertisingStart', function (err) {
+    if (!err) {
+        console.log('advertising...');
+        bleno_1.default.setServices([
+            new bleno_1.default.PrimaryService({
+                uuid: 'fffffffffffffffffffffffffffffff0',
+                characteristics: [
+                    new bleno_1.default.Characteristic({
+                        value: null,
+                        uuid: 'fffffffffffffffffffffffffffffff1',
+                        properties: ['read', 'write'],
+                        onReadRequest: function (offset, callback) {
+                            console.log('onReadRequest');
+                        },
+                        onWriteRequest: function (data, offset, withoutResponse, callback) {
+                            console.log('onWriteRequest: ' + data.toString('hex') + ' ' + offset + ' ' + withoutResponse);
+                        }
+                    })
+                ]
+            })
+        ]);
     }
 });
